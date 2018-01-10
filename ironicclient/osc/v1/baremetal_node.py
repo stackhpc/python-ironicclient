@@ -1574,3 +1574,100 @@ class InjectNmiBaremetalNode(command.Command):
         baremetal_client = self.app.client_manager.baremetal
 
         baremetal_client.node.inject_nmi(parsed_args.node)
+
+
+class ListTraitsBaremetalNode(command.Lister):
+    """List a node's traits."""
+
+    log = logging.getLogger(__name__ + ".ListTraitsBaremetalNode")
+
+    def get_parser(self, prog_name):
+        parser = super(ListTraitsBaremetalNode, self).get_parser(prog_name)
+
+        parser.add_argument(
+            'node',
+            metavar='<node>',
+            help=_("Name or UUID of the node"))
+
+        return parser
+
+    def take_action(self, parsed_args):
+        self.log.debug("take_action(%s)", parsed_args)
+
+        labels = res_fields.TRAIT_RESOURCE.labels
+
+        baremetal_client = self.app.client_manager.baremetal
+        traits = baremetal_client.node.get_traits(parsed_args.node)
+
+        return (labels, [[trait] for trait in traits])
+
+
+class AddTraitBaremetalNode(command.Command):
+    """Add traits to a node."""
+
+    log = logging.getLogger(__name__ + ".AddTraitBaremetalNode")
+
+    def get_parser(self, prog_name):
+        parser = super(AddTraitBaremetalNode, self).get_parser(prog_name)
+
+        parser.add_argument(
+            'node',
+            metavar='<node>',
+            help=_("Name or UUID of the node"))
+        parser.add_argument(
+            'trait',
+            nargs='+',
+            metavar='<trait>',
+            help=_("Trait to add"))
+
+        return parser
+
+    def take_action(self, parsed_args):
+        self.log.debug("take_action(%s)", parsed_args)
+
+        baremetal_client = self.app.client_manager.baremetal
+        for trait in parsed_args.trait:
+            baremetal_client.node.add_trait(parsed_args.node, trait)
+
+
+class RemoveTraitBaremetalNode(command.Command):
+    """Remove trait(s) from a node."""
+
+    log = logging.getLogger(__name__ + ".RemoveTraitBaremetalNode")
+
+    def get_parser(self, prog_name):
+        parser = super(RemoveTraitBaremetalNode, self).get_parser(prog_name)
+
+        parser.add_argument(
+            'node',
+            metavar='<node>',
+            help=_("Name or UUID of the node"))
+        parser.add_argument(
+            '--all',
+            dest='remove_all',
+            action='store_true',
+            help=_("Remove all traits"))
+        parser.add_argument(
+            'trait',
+            metavar='<trait>',
+            nargs='*',
+            help=_("Trait to remove"))
+
+        return parser
+
+    def take_action(self, parsed_args):
+        self.log.debug("take_action(%s)", parsed_args)
+
+        if parsed_args.remove_all and parsed_args.trait:
+            raise exc.CommandError(
+                'Cannot specify --all with trait(s).')
+        if not parsed_args.remove_all and not parsed_args.trait:
+            raise exc.CommandError(
+                'Must specify at least one trait or --all')
+
+        baremetal_client = self.app.client_manager.baremetal
+        if parsed_args.remove_all:
+            baremetal_client.node.remove_all_traits(parsed_args.node)
+        else:
+            for trait in parsed_args.trait:
+                baremetal_client.node.remove_trait(parsed_args.node, trait)

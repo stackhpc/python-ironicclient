@@ -170,14 +170,20 @@ class Manager(object):
 
         return object_list
 
-    def _list(self, url, response_key=None, obj_class=None, body=None):
+    def __list(self, url, response_key=None, body=None):
         resp, body = self.api.json_request('GET', url)
+        data = self._format_body_data(body, response_key)
+        return data
 
+    def _list(self, url, response_key=None, obj_class=None, body=None):
         if obj_class is None:
             obj_class = self.resource_class
 
-        data = self._format_body_data(body, response_key)
+        data = self.__list(url, response_key=response_key, body=body)
         return [obj_class(self, res, loaded=True) for res in data if res]
+
+    def _list_primitives(self, url, response_key=None):
+        return self.__list(url, response_key=response_key)
 
     def _update(self, resource_id, patch, method='PATCH'):
         """Update a resource.
@@ -188,7 +194,10 @@ class Manager(object):
         """
 
         url = self._path(resource_id)
-        resp, body = self.api.json_request(method, url, body=patch)
+        kwargs = {}
+        if patch is not None:
+            kwargs['body'] = patch
+        resp, body = self.api.json_request(method, url, **kwargs)
         # PATCH/PUT requests may not return a body
         if body:
             return self.resource_class(self, body)

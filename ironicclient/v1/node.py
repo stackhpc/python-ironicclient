@@ -553,6 +553,27 @@ class NodeManager(base.CreateManager):
         path = "%s/vendor_passthru/methods" % node_ident
         return self._get_as_dict(path)
 
+    def get_traits(self, node_ident):
+        path = "%s/traits" % node_ident
+        return self._list_primitives(self._path(path), 'traits')
+
+    def add_trait(self, node_ident, trait):
+        path = "%s/traits/%s" % (node_ident, trait)
+        return self.update(path, None, http_method='PUT')
+
+    def set_traits(self, node_ident, traits):
+        path = "%s/traits" % node_ident
+        body = {'traits': traits}
+        return self.update(path, body, http_method='PUT')
+
+    def remove_all_traits(self, node_ident):
+        path = "%s/traits" % node_ident
+        return self._delete(path)
+
+    def remove_trait(self, node_ident, trait):
+        path = "%s/traits/%s" % (node_ident, trait)
+        return self._delete(path)
+
     def wait_for_provision_state(self, node_ident, expected_state,
                                  timeout=0,
                                  poll_interval=_DEFAULT_POLL_INTERVAL,
